@@ -57,7 +57,9 @@ install_python() {
 }
 
 install_node() {
-  log "Install node via nvm"
+  # install node also via apt so it can be picked up more easily by neovim
+  log "Install node and nvm"
+  sudo apt install -y nodejs
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
   # enable nvm command without having to reload the shell
   export NVM_DIR="$HOME/.nvm"
@@ -81,6 +83,7 @@ install_neovim() {
     libpng-dev libjpeg-dev libtiff-dev imagemagick \
     ghostscript
   npm install -g @mermaid-js/mermaid-cli
+  npm install -g @ast-grep/cli
   [[ -d ~/.config/nvim ]] && mv ~/.config/nvim{,.bak_$timestamp}
   [[ -d ~/.local/share/nvim ]] && mv ~/.local/share/nvim{,.bak_$timestamp}
   [[ -d ~/.local/state/nvim ]] && mv ~/.local/state/nvim{,.bak_$timestamp}
