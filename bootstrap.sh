@@ -13,7 +13,7 @@ log() {
 # check preconditions
 require_command() {
   command -v "$1" >/dev/null 2>&1 || {
-    echo "❌ $1 required but not installed, aboort."
+    echo "❌ $1 required but not installed, abort."
     exit 1
   }
 }
