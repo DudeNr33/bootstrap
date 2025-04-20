@@ -49,7 +49,7 @@ install_zsh() {
   sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
   log "Install tmux..."
   sudo apt install -y tmux
-  cp .zshrc ~./zshrc
+  cp .zshrc ~/.zshrc
 }
 
 install_python() {
@@ -57,6 +57,7 @@ install_python() {
   sudo apt install -y python3 python3-pip python3-venv
   log "Python: install uv..."
   curl -LsSf https://astral.sh/uv/install.sh | sh
+  source $HOME/.local/bin/env
 }
 
 install_node() {
@@ -74,26 +75,73 @@ install_node() {
 }
 
 install_neovim() {
-  log "Install neovim and required dependencies..."
-  sudo add-apt-repository -y ppa:neovim-ppa/unstable
+  if [[ -z "$SKIP_NVIM" ]]; then
+    log "Install neovim and required dependencies..."
+    sudo add-apt-repository -y ppa:neovim-ppa/unstable
+    sudo apt update
+    sudo apt install -y \
+      neovim \
+      ripgrep \
+      fd-find \
+      fzf \
+      unzip \
+      libpng-dev libjpeg-dev libtiff-dev imagemagick \
+      ghostscript
+    npm install -g @mermaid-js/mermaid-cli
+    npm install -g @ast-grep/cli
+    [[ -d ~/.config/nvim ]] && mv ~/.config/nvim{,.bak_$timestamp}
+    [[ -d ~/.local/share/nvim ]] && mv ~/.local/share/nvim{,.bak_$timestamp}
+    [[ -d ~/.local/state/nvim ]] && mv ~/.local/state/nvim{,.bak_$timestamp}
+    [[ -d ~/.cache/nvim ]] && mv ~/.cache/nvim{,.bak_$timestamp}
+    git clone https://github.com/DudeNr33/neovim-config.git ~/.config/nvim
+    require_command uv
+    (cd ~/.config/nvim && uv venv -p 3.13 && uv pip install pynvim)
+  else
+    log "Skipping neovim installation (SKIP_NVIM is set)"
+  fi
+}
+
+install_docker() {
+  log "Install Docker..."
+  # Remove possibly existing old installations
+  for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt remove -y $pkg; done
+
+  # Add Docker's official GPG key:
+  sudo apt-get update
+  sudo apt-get install -y ca-certificates curl
+  sudo install -m 0755 -d /etc/apt/keyrings
+  sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+  # Add the repository to Apt sources:
+
+  echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+    $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" |
+    sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
   sudo apt update
-  sudo apt install -y \
-    neovim \
-    ripgrep \
-    fd-find \
-    fzf \
-    unzip \
-    libpng-dev libjpeg-dev libtiff-dev imagemagick \
-    ghostscript
-  npm install -g @mermaid-js/mermaid-cli
-  npm install -g @ast-grep/cli
-  [[ -d ~/.config/nvim ]] && mv ~/.config/nvim{,.bak_$timestamp}
-  [[ -d ~/.local/share/nvim ]] && mv ~/.local/share/nvim{,.bak_$timestamp}
-  [[ -d ~/.local/state/nvim ]] && mv ~/.local/state/nvim{,.bak_$timestamp}
-  [[ -d ~/.cache/nvim ]] && mv ~/.cache/nvim{,.bak_$timestamp}
-  git clone https://github.com/DudeNr33/neovim-config.git ~/.config/nvim
-  require_command uv
-  (cd ~/.config/nvim && uv venv -p 3.13 && uv pip install pynvim)
+
+  # Install docker packages
+  sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+  # add user to docker group
+  if ! getent group docker >/dev/null; then
+    sudo groupadd docker
+  fi
+  sudo usermod -aG docker $USER
+}
+
+install_k8s_tools() {
+  log "Install kind (Kubernetes-in-Docker)..."
+  curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
+  chmod +x ./kind
+  sudo mv ./kind /usr/local/bin/kind
+
+  log "Install kubectl..."
+  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+  echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+  sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 }
 
 main() {
@@ -104,6 +152,8 @@ main() {
   install_node
   install_python
   install_neovim
+  install_docker
+  install_k8s_tools
 
   log "✔  Bootstrap finished. Please restart the shell."
 }
