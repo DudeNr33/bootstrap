@@ -22,7 +22,7 @@ install_base_packages() {
   log "Update system and install basic tools..."
   sudo apt update
   sudo apt upgrade -y
-  sudo apt install -y git curl ca-certificates gnupg lsb-release software-properties-common build-essential
+  sudo apt install -y git curl ca-certificates gnupg lsb-release software-properties-common build-essential xdg-utils
 }
 
 configure_git() {
@@ -75,7 +75,7 @@ install_node() {
 }
 
 install_neovim() {
-  if [[ -z "$SKIP_NVIM" ]]; then
+  if [[ -z "${SKIP_NVIM:-}" ]]; then
     log "Install neovim and required dependencies..."
     sudo add-apt-repository -y ppa:neovim-ppa/unstable
     sudo apt update
@@ -142,6 +142,10 @@ install_k8s_tools() {
   curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
   echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
   sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+  rm kubectl*
+
+  log "Install KubeVela..."
+  curl -fsSl https://kubevela.io/script/install.sh | bash
 }
 
 main() {
