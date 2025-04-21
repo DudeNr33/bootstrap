@@ -74,6 +74,14 @@ install_node() {
   nvm use node
 }
 
+install_java() {
+  log "Install Java JDK"
+  wget -O - https://apt.corretto.aws/corretto.key | sudo gpg --dearmor -o /usr/share/keyrings/corretto-keyring.gpg &&
+    echo "deb [signed-by=/usr/share/keyrings/corretto-keyring.gpg] https://apt.corretto.aws stable main" | sudo tee /etc/apt/sources.list.d/corretto.list
+  sudo apt update
+  sudo apt install -y java-21-amazon-corretto-jdk
+}
+
 install_neovim() {
   if [[ -z "${SKIP_NVIM:-}" ]]; then
     log "Install neovim and required dependencies..."
@@ -155,6 +163,7 @@ main() {
   install_zsh
   install_node
   install_python
+  install_java
   install_neovim
   install_docker
   install_k8s_tools
