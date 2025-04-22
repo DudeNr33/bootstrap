@@ -85,10 +85,10 @@ install_java() {
 install_neovim() {
   if [[ -z "${SKIP_NVIM:-}" ]]; then
     log "Install neovim and required dependencies..."
-    sudo add-apt-repository -y ppa:neovim-ppa/unstable
-    sudo apt update
+    curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-$(uname -p).appimage
+    chmod u+x nvim*.appimage
+    sudo mv nvim*.appimage /usr/local/bin/nvim
     sudo apt install -y \
-      neovim \
       ripgrep \
       fd-find \
       fzf \
