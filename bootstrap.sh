@@ -139,6 +139,16 @@ install_docker() {
   sudo usermod -aG docker $USER
 }
 
+install_aws_tools() {
+  log "Install aws-cli..."
+  require_command unzip
+  gpg --import awscliv2_public_key
+  curl "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -p).zip" -o "/tmp/awscliv2.zip"
+  curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip.sig -o "/tmp/awscliv2.sig"
+  gpg --verify /tmp/awscliv2.sig /tmp/awscliv2.zip
+  (cd /tmp/ && unzip awscliv2.zip && sudo ./aws/install)
+}
+
 install_k8s_tools() {
   log "Install kind (Kubernetes-in-Docker)..."
   curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
@@ -154,6 +164,16 @@ install_k8s_tools() {
 
   log "Install KubeVela..."
   curl -fsSl https://kubevela.io/script/install.sh | bash
+
+  log "Install eksctl"
+  # for ARM systems, set ARCH to: `arm64`, `armv6` or `armv7`
+  ARCH=amd64
+  PLATFORM=$(uname -s)_$ARCH
+  curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
+  # (Optional) Verify checksum
+  curl -sL "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_checksums.txt" | grep $PLATFORM | sha256sum --check
+  tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm eksctl_$PLATFORM.tar.gz
+  sudo mv /tmp/eksctl /usr/local/bin
 }
 
 main() {
@@ -166,6 +186,7 @@ main() {
   install_java
   install_neovim
   install_docker
+  install_aws_tools
   install_k8s_tools
 
   log "✔  Bootstrap finished. Please restart the shell."
